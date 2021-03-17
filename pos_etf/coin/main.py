@@ -1,15 +1,82 @@
 from config import *
+from util import add_network_params, sign_and_send, generate_new_account
 from algosdk import algod
-from algosdk.transaction import AssetConfigTxn
-from algosdk.transaction import write_to_file
+from algosdk.transaction import AssetConfigTxn, AssetTransferTxn, write_to_file
+from pathlib import Path
+import os
+import asyncio, aiofiles
 
-client = algod.AlgodClient("5fd254f3dd0638175d7cc386b87ac97fe54bf4cf462e09e9c8864b48fa7e185a", "http://127.0.0.1:8080")
+async def get_api_token(home_dir: str) -> str:
+    """
+    retrieve and return the API token from the $HOME/node/data folder.
 
-print(client.status().get('lastRound'))
+    :param home_dir -> ``str``: the home directory of the current user.
+    :return -> ``str``: the API token
+    """
+    async with aiofiles.open(os.path.join(home_dir, "algod.token"), "r") as api_token_file:
+        api_token = await api_token_file.read()
+    
+    return api_token.strip()
 
-def create():
+async def get_network_info(home_dir: str) -> str:
+    """
+    retrieve and return the network information (URL and PORT)
+
+    :param home_dir -> ``str``: the home directory of the current user.
+    :return -> ``str``: the URL and PORT formatted as http://{URL}:{PORT}
+    """
+    async with aiofiles.open(os.path.join(home_dir, "algod.net"), "r") as algorand_network_file:
+        network_info = await algorand_network_file.read()
+        cleaned_network_info = network_info.strip()
+    
+    return "http://{0}".format(cleaned_network_info)
+
+def create(passphrase:str= None):
     """
     creates the asset that is defined in `config.py`, signs it, and sends it
     to the algorand network if the senders passphrase is supplied. Otherwise,
     the transaction is written to a file.
+
+    :param passphrase -> ``str``: the user passphrase.
     """
+    transaction_data = add_network_params(client, asset_details)
+    transaction = AssetConfigTxn(**transaction_data)
+    
+    if passphrase:
+        transaction_info = sign_and_send(transaction, passphrase, client)
+        print(f"Create asset confirmation, transaction ID: {transaction}")
+        asset_id = transaction_info['txresults'].get('createdasset')
+        print(f"Asset ID: {asset_id}")
+    else:
+        write_to_file([transaction], "create_coin.txn")
+
+def opt_in(passphrase:str= None):
+    """
+    Creates, signs, and sends an opt-in transaction for the specified asset_id.
+    If the passphrase is not supplied, writes the unsigned transaction to a file.
+
+    :param passphrase -> ``str``: the user passphrase.
+    """
+    opt_in_data = {
+        "sender": creator_address,
+        "receiver": creator_address,
+        "amt": 0,
+        "index": asset_id
+    }
+
+    transaction_data = add_network_params(client, opt_in_data)
+    transaction = AssetTransferTxn(**transaction_data)
+    if passphrase:
+        txinfo = sign_and_send(transaction, passphrase, client)
+        print("Opted in to asset ID: {}".format(asset_id))
+        print("Transaction ID Confirmation: {}".format(txinfo.get("tx")))
+    else:
+        write_to_file([transaction], "optin.txn")
+
+HOME_DIR = str(Path.home())
+ALGORAND_NODE_DIR = os.path.join(HOME_DIR, "node")
+ALGORAND_MAIN_NET_DATA_DIR = os.path.join(ALGORAND_NODE_DIR, "data")
+
+client = algod.AlgodClient(asyncio.run(get_api_token(ALGORAND_MAIN_NET_DATA_DIR)), asyncio.run(get_network_info(ALGORAND_MAIN_NET_DATA_DIR)))
+# print(create(creator_passphrase))
+# opt_in(creator_passphrase)
