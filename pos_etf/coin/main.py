@@ -1,10 +1,28 @@
-from config import *
-from util import add_network_params, sign_and_send, generate_new_account
+from config import (
+    creator_address,
+    creator_passphrase,
+    asset_details
+)
+from util import (
+    add_network_params,
+    sign_and_send,
+    generate_new_account
+)
 from algosdk import algod
-from algosdk.transaction import AssetConfigTxn, AssetTransferTxn, write_to_file
+from algosdk.transaction import (
+    AssetConfigTxn, 
+    AssetTransferTxn, 
+    write_to_file
+)
 from pathlib import Path
 import os
 import asyncio, aiofiles
+from util import generate_new_account
+
+def generate_accounts():
+    """generate creator and receiver accounts for test transactions."""
+    for i in range(2):
+        open(f"account_{i}.json", "w").write(generate_new_account())
 
 async def get_api_token(home_dir: str) -> str:
     """
@@ -68,6 +86,7 @@ def opt_in(passphrase:str= None):
     transaction = AssetTransferTxn(**transaction_data)
     if passphrase:
         txinfo = sign_and_send(transaction, passphrase, client)
+        asset_id = txinfo['txresults'].get('createdasset')
         print("Opted in to asset ID: {}".format(asset_id))
         print("Transaction ID Confirmation: {}".format(txinfo.get("tx")))
     else:
@@ -75,8 +94,8 @@ def opt_in(passphrase:str= None):
 
 HOME_DIR = str(Path.home())
 ALGORAND_NODE_DIR = os.path.join(HOME_DIR, "node")
-ALGORAND_MAIN_NET_DATA_DIR = os.path.join(ALGORAND_NODE_DIR, "data")
+ALGORAND_MAIN_NET_DATA_DIR = os.path.join(ALGORAND_NODE_DIR, "testnetdata")
 
 client = algod.AlgodClient(asyncio.run(get_api_token(ALGORAND_MAIN_NET_DATA_DIR)), asyncio.run(get_network_info(ALGORAND_MAIN_NET_DATA_DIR)))
-# print(create(creator_passphrase))
+print(create(creator_passphrase))
 # opt_in(creator_passphrase)

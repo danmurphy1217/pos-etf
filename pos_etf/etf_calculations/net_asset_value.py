@@ -123,8 +123,10 @@ def calculate_net_asset_value(etf_data_dict: Dict[str, Dict[str, int or float]])
 
     return round((total_market_cap) / (total_circulating_supply), 2)
 
-
 market_caps_dict = asyncio.run(get_all_market_caps(coins_tuple))
 etf_data_dict = structure_etf_datapoints(market_caps_dict)
 net_asset_value = calculate_net_asset_value(etf_data_dict)
 print(net_asset_value)
+
+#! goal is to catch 50+x, evenly distribute???
+#! exchange for ETFs (crypto ETF exchange)
