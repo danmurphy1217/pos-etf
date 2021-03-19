@@ -61,6 +61,7 @@ def wait_for_confirmation(client: algod.AlgodClient, transaction_id: str) -> Dic
     :param transaction_id -> ``str``: id for the transaction.
     """
 
+    print("IN WAIT FOR CONFIRMATION")
     last_round = client.status().get("lastRound")
     while True:
         transaction_info = client.pending_transaction_info(transaction_id)
@@ -78,7 +79,7 @@ def sign_and_send(transaction: str, passphrase: str, client: algod.AlgodClient) 
     sign and send a transaction to the algorand network. Return the transaction
     info when the transaction is completed.
 
-    :param transaction -> ``AssetTransferTxn``: the transaction object.
+    :param transaction -> ``algosdk.transaction.AssetTransferTxn``: the transaction object.
     :param passphrase -> ``str``: the public key for the user involved in the transaction.
     :param client -> ``algod.AlgodClient``: an algorand client object.
     """
@@ -89,3 +90,17 @@ def sign_and_send(transaction: str, passphrase: str, client: algod.AlgodClient) 
     client.send_transaction(signed_transaction, headers={'content-type': 'application/x-binary'})
     transaction_info = wait_for_confirmation(client, transaction_id)
     return transaction_info
+
+def balance_formatter(amount, asset_id, client):
+    """
+    Returns the formatted units for a given asset and amount.
+
+    :param amount -> ``int``:
+    :param asset_id -> ``int``: the ID for the asset.
+    :param client -> ``algod.Client``: instantiated client object.
+    """
+    asset_info = client.asset_info(asset_id)
+    decimals = asset_info.get("decimals")
+    unit = asset_info.get("unitname")
+    formatted_amount = amount/10**decimals
+    return "{} {}".format(formatted_amount, unit)
