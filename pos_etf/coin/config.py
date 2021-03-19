@@ -1,3 +1,5 @@
+asset_id = 14875048
+
 creator_address = ""
 creator_passphrase = \
     ""
