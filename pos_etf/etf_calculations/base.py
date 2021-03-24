@@ -1,8 +1,8 @@
+from __future__ import annotations
 from typing import Tuple, Dict, List
 import asyncio
 import aiohttp
 import json
-
 
 class BaseEtf(object):
     """
@@ -32,7 +32,7 @@ class BaseEtf(object):
         'near-protocol'
     )
 
-    def __init__(self, base_request_url: str) -> None:
+    def __init__(self: BaseEtf, base_request_url: str) -> None:
         """
         initialize the BaseEtf object.
 
@@ -41,7 +41,7 @@ class BaseEtf(object):
         """
         self.base_request_url = base_request_url
 
-    async def get_coin(self, coin: str) -> Tuple[str, Dict[str, int or float or str]]:
+    async def get_coin(self: BaseEtf, coin: str) -> Tuple[str, Dict[str, int or float or str]]:
         """
         retrieve data from coinmarketcap.com for the coins in `self.coins_tuple`.
 
@@ -55,7 +55,7 @@ class BaseEtf(object):
 
             return (coin, json_data)
 
-    async def get_coins(self):
+    async def get_coins(self: BaseEtf):
         """
         for each coin in coins, setup the get_coin_market_cap() coroutine and gather them.
         Return the gathered coroutines
@@ -72,7 +72,8 @@ class BaseEtf(object):
 
         return list_of_coin_data
 
-    def extract(self, key_to_extract, object_to_extract_from: Dict[str, int or float or str]) -> int or float or str:
+    @classmethod
+    def extract(cls: BaseEtf, key_to_extract, object_to_extract_from: Dict[str, int or float or str]) -> int or float or str:
         """
         extract `key_to_extract` from `object_to_extract_from` and return it.
 
@@ -83,7 +84,19 @@ class BaseEtf(object):
         """
         return object_to_extract_from[key_to_extract]
 
-    def structure(self, coin_tuples: List[Tuple[str, str, str]]) -> Dict[str, Dict[str, int or float]]:
+    @property
+    def coin_data(self: BaseEtf):
+        """
+        GETTER for ``self.structure``
+        """
+        return self._coin_data
+
+    @coin_data.setter
+    def coin_data(self, coin_data: Dict[str, Dict[str, int or float]]) -> None:
+        """"""
+        self._coin_data = coin_data
+
+    def structure(self: BaseEtf, coin_tuples: List[Tuple[str, str, str]], stats_to_extract: Tuple[str]) -> Dict[str, Dict[str, int or float]]:
         """
         structure the coin statistics as a dictionary with each coin as the keys and
         a dictionary of coin-based statistics as the values.
@@ -98,11 +111,11 @@ class BaseEtf(object):
 
         for coin_slug, json_data in coin_tuples:
             filtered_json_data = json_data["data"]["statistics"]
-            etf_datapoints_dict[coin_slug] = self._build_json_dump('marketCap', 'circulatingSupply', 'marketCapChangePercentage24h', 'lowYesterday', 'low30d', data=filtered_json_data)
+            etf_datapoints_dict[coin_slug] = self._build_json_dump(*stats_to_extract, data=filtered_json_data)
 
         return etf_datapoints_dict
     
-    def _build_json_dump(self, *stats_to_extract, **coin_statistics) -> Dict[str, int or float]:
+    def _build_json_dump(self: BaseEtf, *stats_to_extract, **coin_statistics) -> Dict[str, int or float]:
         """
         helper function to build a JSON dump from the `kwargs` passed to the func
         
@@ -120,18 +133,14 @@ class BaseEtf(object):
         
         return json_dump
 
-Base = BaseEtf(
-    "https://api.coinmarketcap.com/data-api/v3/cryptocurrency/detail?slug=")
-list_of_coin_response_objects = asyncio.run(Base.get_coins())
+# Base = BaseEtf(
+#     "https://api.coinmarketcap.com/data-api/v3/cryptocurrency/detail?slug=")
+# list_of_coin_response_objects = asyncio.run(Base.get_coins())
+# Base.coin_data = Base.structure(list_of_coin_response_objects)
+# print(Base.coin_data)
 
-
-print(Base.structure(list_of_coin_response_objects))
 # for coin_data in list_of_coin_response_objects:
 
 #     coin_name, response_obj = coin_data
 #     coin_statistics = response_obj["data"]["statistics"]
 #     print(coin_statistics)
-
-# print(Base.extract('marketCap', filtered_response_object))
-# test_identifiers = ('marketCap', 'circulatingSupply')
-# Base.pprint_coin_data(*test_identifiers)
