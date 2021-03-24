@@ -84,32 +84,41 @@ class BaseEtf(object):
         return object_to_extract_from[key_to_extract]
 
     def structure(self, coin_tuples: List[Tuple[str, str, str]]) -> Dict[str, Dict[str, int or float]]:
+        """
+        structure the coin statistics as a dictionary with each coin as the keys and
+        a dictionary of coin-based statistics as the values.
+        
+        :param coin_tuples -> ``List[Tuple[str, str, str]]``: a list of tuples where each tuple has:
+                                                              (1) coin name
+                                                              (2) JSON object of coin-based data
 
+        :returns -> ``Dict[str, Dict[str, int or float]]``: structured data points for each coin.
+        """
         etf_datapoints_dict = dict()
 
         for coin_slug, json_data in coin_tuples:
             filtered_json_data = json_data["data"]["statistics"]
-            etf_datapoints_dict[coin_slug] = self._build_json_dump('marketCap', 'circulatingSupply', data=filtered_json_data)
+            etf_datapoints_dict[coin_slug] = self._build_json_dump('marketCap', 'circulatingSupply', 'marketCapChangePercentage24h', 'lowYesterday', 'low30d', data=filtered_json_data)
 
         return etf_datapoints_dict
     
-    def _build_json_dump(self, *args, **kwargs):
-        """build a JSON dump from the `kwargs` passed to the func"""
+    def _build_json_dump(self, *stats_to_extract, **coin_statistics) -> Dict[str, int or float]:
+        """
+        helper function to build a JSON dump from the `kwargs` passed to the func
+        
+        :stats_to_extract -> ``str``:
+            the keys to use as indexers to extract data from the JSON object.
+        
+        :coin_statistics -> :
+            the JSON object to retrieve data from.
+
+        :returns -> ``Dict[str, int or float]``: the JSON dump containing statistics for each coin.
+        """
         json_dump = dict()
-        for value_to_exact in args:
-            json_dump[value_to_exact] = self.extract(value_to_exact, kwargs.get("data"))
+        for stat in stats_to_extract:
+            json_dump[stat] = self.extract(stat, coin_statistics.get("data"))
         
         return json_dump
-
-
-    # def pprint_coin_data(self, *keys_to_extract: str) -> None:
-    #     """
-    #     pretty print useful statistics for each coin.
-
-    #     :keys_to_extract -> ``str``: the keys to attract from the statistics portion of the Coin Market Cap JSON Object.
-    #     :return -> ``None``:
-    #     """
-
 
 Base = BaseEtf(
     "https://api.coinmarketcap.com/data-api/v3/cryptocurrency/detail?slug=")
@@ -121,8 +130,7 @@ print(Base.structure(list_of_coin_response_objects))
 
 #     coin_name, response_obj = coin_data
 #     coin_statistics = response_obj["data"]["statistics"]
-#     print(Base.extract('marketCap', coin_statistics))
-#     print(Base.extract('circulatingSupply', coin_statistics))
+#     print(coin_statistics)
 
 # print(Base.extract('marketCap', filtered_response_object))
 # test_identifiers = ('marketCap', 'circulatingSupply')
