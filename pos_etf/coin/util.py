@@ -29,7 +29,7 @@ def add_network_params(client: algod.AlgodClient, tx_data: Dict[str, str or int]
     tx_data["last"] = params.get("lastRound") + 1000
     tx_data["gh"] = params.get("genesishashb64")
     tx_data["gen"] = params.get("genesisID")
-    tx_data["fee"] = 0
+    tx_data["fee"] = .001
     tx_data["flat_fee"] = True
     return tx_data
 
@@ -60,8 +60,6 @@ def wait_for_confirmation(client: algod.AlgodClient, transaction_id: str) -> Dic
     :param client -> ``algod.AlgodClient``: an algorand client object.
     :param transaction_id -> ``str``: id for the transaction.
     """
-
-    print("IN WAIT FOR CONFIRMATION")
     last_round = client.status().get("lastRound")
     while True:
         transaction_info = client.pending_transaction_info(transaction_id)
@@ -86,7 +84,6 @@ def sign_and_send(transaction: str, passphrase: str, client: algod.AlgodClient) 
     private_key = mnemonic.to_private_key(passphrase)
     signed_transaction = transaction.sign(private_key)
     transaction_id = signed_transaction.transaction.get_txid()
-    print("IN SIGN AND SEND")
     client.send_transaction(signed_transaction, headers={'content-type': 'application/x-binary'})
     transaction_info = wait_for_confirmation(client, transaction_id)
     return transaction_info
