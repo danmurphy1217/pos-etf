@@ -133,14 +133,12 @@ class BaseEtf(object):
         
         return json_dump
 
-# Base = BaseEtf(
-#     "https://api.coinmarketcap.com/data-api/v3/cryptocurrency/detail?slug=")
-# list_of_coin_response_objects = asyncio.run(Base.get_coins())
-# Base.coin_data = Base.structure(list_of_coin_response_objects)
-# print(Base.coin_data)
+Base = BaseEtf(
+    "https://api.coinmarketcap.com/data-api/v3/cryptocurrency/detail?slug=")
+list_of_coin_response_objects = asyncio.run(Base.get_coins())
 
-# for coin_data in list_of_coin_response_objects:
+for coin_data in list_of_coin_response_objects:
 
-#     coin_name, response_obj = coin_data
-#     coin_statistics = response_obj["data"]["statistics"]
-#     print(coin_statistics)
+    coin_name, response_obj = coin_data
+    coin_statistics = response_obj["data"]["statistics"]
+    print(coin_statistics)
