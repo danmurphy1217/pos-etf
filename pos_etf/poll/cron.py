@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import List, Optional
 import getpass
 import uuid
+import os
 
 
 class CronTab(object):
@@ -18,7 +19,7 @@ class CronTab(object):
         :param name -> ``str``: the name of the CronJob.
         """
         name_for_job = name if name is not None else uuid.uuid4()
-        desc_for_job = description if description is not None else "[None Provided]"
+        desc_for_job = description if description is not None else "[No Description Provided]"
 
         return CronJob(name_for_job, desc_for_job, self)
 
@@ -35,18 +36,21 @@ class CronTab(object):
 
         :param name -> ``str``: the name of the CronJob to delete.
         """
-    
+
     def write(self):
         """
         write all jobs inn
         """
         if not self.jobs[0]:
-            raise Exception("No Job Created. Run `CronTab().create(*args).at(*args).do(*args)` to get started.")
+            raise Exception(
+                "No Job Created. Run `CronTab().create(*args).at(*args).do(*args)` to get started.")
         else:
             user = self.jobs[0].user
             with open(f"/var/at/tabs/{user}", "w") as f:
-                lines = [f"{job.schedule} {job.command} # {job.name}: {job.description}\n" for job in self.jobs]
+                lines = [
+                    f"{job.schedule} {job.command} # {job.name}: {job.description}\n" for job in self.jobs]
                 f.writelines(lines)
+
 
 class CronJob(object):
     """Class which defines a specific job"""
@@ -55,7 +59,7 @@ class CronJob(object):
         self.name: str = name
         self.description: str = description
         self.cron_tab: CronTab = cron_tab
-        
+
         self.user: str = getpass.getuser()
         self.schedule: Optional[str] = None
         self.command: Optional[str] = None
@@ -96,13 +100,14 @@ class CronJob(object):
 
         return self.command
 
+
 ct = CronTab()
-cj_1 = ct.create().at(minute="*/5").do("python3 /Users/danielmurphy/Desktop/pos-etf/hi.py")
-cj_2 = ct.create(name="Test Two").at(minute="*/1").do("python3 /Users/danielmurphy/Desktop/pos-etf/hi.py")
-cj_3 = ct.create(name="Test Three").at(minute="*/1").do("python3 /Users/danielmurphy/Desktop/pos-etf/hi.py &2>1 /Users/danielmurphy/Desktop/this_is_test.txt")
+ct.create(name="Test One").at(minute="*/5").do(
+    "python3 /Users/danielmurphy/Desktop/pos-etf/hi.py > /Users/danielmurphy/Desktop/this_is_test.txt")
 
 ct.write()
 
+#  TODO!!!
 # ct.modify_job(name).at().do()
 # ct.delete_job(name)
 # ct.read().job(name)
