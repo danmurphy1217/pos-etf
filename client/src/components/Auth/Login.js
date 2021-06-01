@@ -51,13 +51,13 @@ const LogIn = () => {
       });
       const data = result.data;
 
-      if ( data.error ) {
-        console.log("THERE WAS AN ERROR, SHOULD REDIRECT TO LOGIN AGAIN WITH AN ERROR MESSAGE");
-      }
-      else if ( data.data ) {
+      if (data.error) {
+        console.log(
+          "THERE WAS AN ERROR, SHOULD REDIRECT TO LOGIN AGAIN WITH AN ERROR MESSAGE"
+        );
+      } else if (data.data) {
         console.log("LOTS OF DATA: ", data.data.account);
       }
-
     } catch (err) {
       console.log("Unsuccessful Request: ", err);
     }
@@ -67,14 +67,6 @@ const LogIn = () => {
     <div className="box">
       <div className="login-wrapper">
         <Form style={{ width: "350px" }}>
-          <div>
-            <InLineText fontSize={"16px"} float={"left"}>
-              Sign In
-            </InLineText>
-            <InLineATag href="/forgot" fontSize={"14px"} float={"right"}>
-              Forgot Password?
-            </InLineATag>
-          </div>
           <Form.Group controlId="formBasicEmail">
             <Form.Control
               type="email"
@@ -83,7 +75,6 @@ const LogIn = () => {
               required
             />
           </Form.Group>
-
           <Form.Group controlId="formBasicPassword">
             <Form.Control
               type="password"
