@@ -40,9 +40,24 @@ router.post("/login", async (req, res) => {
 });
 
 router.post("/signup", async (req, res) => {
-  res.json({
-    message: "Hi from signup.",
-  });
+  const body = req.body;
+  const { firstName, lastName, walletAddress, password } = body;
+
+  const accountData = await getAccountFor(walletAddress);
+
+  if (accountData.data) {
+    let result = {
+      ...accountData,
+      algoEtf: { firstName: firstName, lastName: lastName, password: password },
+    };
+
+    // dump into MongoDB
+    // TODO
+
+    res.status(200).json(result);
+  } else {
+    res.status(200).json({ error: "Wallet Address does not exist." });
+  }
 });
 
 router.patch("/forgot-password", async (req, res) => {
