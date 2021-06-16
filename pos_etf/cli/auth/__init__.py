@@ -1,4 +1,5 @@
 from typing import Optional, Dict
+import argparse
 import pathlib
 import os
 import requests
@@ -32,12 +33,12 @@ class AccountNameError(Exception):
 
 class Auth(object):
 
-    def __init__(self, linked_wallet_address: str, linked_private_key: str, user_dotfile: pathlib.Path, base_url: str, account_name: Optional[str] = None):
+    def __init__(self, linked_wallet_address: str, linked_private_key: str, account_name: str, user_dotfile: pathlib.Path, base_url: str):
         self.linked_wallet_address: str = linked_wallet_address
         self.linked_private_key = linked_private_key
         self.user_dotfile = user_dotfile
         self.base_url: str = base_url
-        self.account_name: Optional[str] = account_name if account_name is not None else linked_wallet_address
+        self.account_name = account_name
 
     def _request(self, endpoint: str, params: Dict[str, str]):
         """Private method for sending off-chain requests."""
@@ -47,9 +48,13 @@ class Auth(object):
         response.raise_for_status()
         return response.json()
 
-    def _write(self):
-        """Write account information to `self.user_dotfile`."""
-        with open(self.user_dotfile, "w") as f:
+    def _write(self, mode: str = 'w'):
+        """
+        Write account information to `self.user_dotfile`.
+        
+        :param mode -> ``str``: the mode for writing to the file (should be `w` or `a`)
+        """
+        with open(self.user_dotfile, mode) as f:
             f.writelines([
                 f"[{self.account_name}]\n",
                 f"addr = {self.linked_wallet_address}\n",
@@ -67,27 +72,46 @@ class Auth(object):
             print("Error creating dotfile. See traceback:")
             print(e)
 
-    def verify(self):
+    def verify(self, auth_type: str):
         """Verify the provided wallet address."""
 
         if os.path.exists(self.user_dotfile):
 
-            all_acct_names = filter(
-                re.compile(
-                    r"^\[[a-zA-Z0-9]").search, open(self.user_dotfile).readlines()
-            )
+            if auth_type == "signup":
+                try:
 
-            def formatted_acct_names(acct_names): return [
-                name.strip("[]\n") for name in acct_names
-            ]
+                    self._request(
+                        endpoint="/idx2/v2/transactions",
+                        params={"address": self.linked_wallet_address}
+                    )
 
-            list_of_formatted_acct_names = formatted_acct_names(all_acct_names)
+                    self._make_dotfile()
 
-            if self.account_name in list_of_formatted_acct_names:
-                return True
+                    print(self._write(mode='a'))
+                except requests.exceptions.HTTPError as e:
+                    raise AddressError(
+                        f"Address {self.linked_wallet_address} is invalid.")
             else:
-                raise AccountNameError(
-                    f"{self.account_name} does not exist. Run `algoetf --signup to begin.`")
+                all_acct_names = filter(
+                    re.compile(
+                        r"^\[[a-zA-Z0-9]").search, open(self.user_dotfile).readlines()
+                )
+
+                print(all_acct_names)
+
+                def formatted_acct_names(acct_names): return [
+                    name.strip("[]\n") for name in acct_names
+                ]
+
+                list_of_formatted_acct_names = formatted_acct_names(all_acct_names)
+
+                print(list_of_formatted_acct_names)
+
+                if self.account_name in list_of_formatted_acct_names:
+                    return True
+                else:
+                    raise AccountNameError(
+                        f"{self.account_name} does not exist. Run `algoetf --signup to begin.`")
 
         else:
             try:
