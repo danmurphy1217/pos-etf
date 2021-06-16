@@ -4,8 +4,17 @@ import os
 import sys
 import signal
 from pathlib import Path
+from typing import Optional, Dict
+import re
 
 from cli.auth import Auth
+from cli.utils import extract_matching_pub_key, extract_matching_priv_key
+
+
+user_home_dir = str(Path.home())  # same as os.path.expanduser("~")
+equit_ease_dir = os.path.join(user_home_dir, ".pos_etf")
+credentials_file_path = Path(os.path.join(equit_ease_dir, "credentials"))
+
 
 def init_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     """
@@ -16,20 +25,10 @@ def init_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     :returns parser -> ``argparse.ArgumentParser``: a parser object containing the needed arguments.    
     """
     parser.add_argument(
-        "--signup",
+        "auth",
         type=str,
         nargs="?",
-        help="""Create an account. Credentials are stored in $HOME/.pos_etf"""
-    )
-
-    parser.add_argument(
-        "--login",
-        type=str,
-        nargs="?",
-        help="""
-                Sign into your account. Credentials must match those associated 
-                with your profile name in $HOME/.pos_etf
-            """
+        help="""Valid options are 'login' or 'signup'. If 'login', log into an already-existent address. If 'signup', sign up for an account."""
     )
 
     parser.add_argument(
@@ -56,6 +55,57 @@ def init_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     return parser
 
 
+def handle_auth_flow(auth_type: str):
+    """handle login/signup flow for user."""
+
+    addr_and_key_questions = [
+        {"type": "password", "name": "public_key", "message": "public key:"},
+        {
+            "type": "password",
+            "name": "private_key",
+            "message": "private key:",
+        },
+    ]
+
+    def acct_name_question(default_val: Optional[str] = None, extras: Dict[str, str] = {}):
+        init_dict = {
+            "type": "input",
+            "name": "acct_name",
+            "message": f"account name: {default_val}"
+        }
+        init_dict.update(extras)
+        return init_dict
+
+    if auth_type == "signup":
+        auth_results = prompt(addr_and_key_questions)
+        customized_acct_question = acct_name_question(
+            f"[{auth_results['public_key']}]")
+        name_for_acct = prompt(customized_acct_question)
+
+    elif auth_type == "login":
+        auth_results = dict()
+        valid_acct_names = filter(
+            re.compile(
+                r"^\[[a-zA-Z0-9]").search, open(credentials_file_path).readlines()
+        )
+        cleaned_acct_names = [
+            name.strip("[]\n") for name in valid_acct_names
+        ]
+        customized_acct_question = acct_name_question(
+            extras={
+                "type": "list",
+                "choices": cleaned_acct_names
+            }
+        )
+        name_for_acct = prompt(customized_acct_question)
+
+    acct_name_results = name_for_acct.get("acct_name")
+    auth_results["acct_name"] = acct_name_results if acct_name_results != '' else auth_results.get('public_key')
+    print("RESSIES: ", auth_results)
+
+    return auth_results
+
+
 def main():
     base_parser = argparse.ArgumentParser(
         description="CLI for buying and selling the POS_ETF Coin. Proudly built on the Algorand blockchain.",
@@ -66,12 +116,29 @@ def main():
 
     args = parser.parse_args()
 
-    user_home_dir = str(Path.home())  # same as os.path.expanduser("~")
-    equit_ease_dir = os.path.join(user_home_dir, ".pos_etf")
-    credentials_file_path = Path(os.path.join(equit_ease_dir, "credentials"))
-
     print(args)
-    Auth("1234", "privst key", credentials_file_path, "My First Johnson").verify()
+    auth_type = args.auth
+    if auth_type:
+        auth_results = handle_auth_flow(auth_type)
+
+        pub_key = auth_results.get('public_key') if auth_type == "signup" else extract_matching_pub_key(auth_results['acct_name'], [line.strip("[]\n") for line in open(credentials_file_path).readlines()])
+        priv_key = auth_results.get('private_key') if auth_type == "signup" else extract_matching_priv_key(auth_results['acct_name'], [line.strip("[]\n") for line in open(credentials_file_path).readlines()])
+
+        print(pub_key, priv_key)
+        print("ACCT NAME: ", auth_results["acct_name"])
+
+        auth = Auth(
+            pub_key,
+            priv_key,
+            auth_results['acct_name'],
+            credentials_file_path,
+            "https://testnet.algoexplorerapi.io",
+        )
+
+        print(auth.verify(auth_type))
+
+        # Auth("MXIGC5RCUFNFV2TB7ODAGQ4H7VC75DCH2SBBG7ATWPLB4YHBO7FFPNVLJ4", "privst key", credentials_file_path,
+        #      "https://testnet.algoexplorerapi.io", arg_namespace=args).verify()
 
 
 if __name__ == '__main__':
