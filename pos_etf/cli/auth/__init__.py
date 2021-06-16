@@ -6,6 +6,8 @@ import requests
 from urllib.parse import urlencode
 import re
 
+from cli.utils import clean_acct_names
+
 """
 Signup flow is to create a profile name, provide wallet address and private key.
 
@@ -85,27 +87,13 @@ class Auth(object):
                         params={"address": self.linked_wallet_address}
                     )
 
-                    self._make_dotfile()
-
-                    print(self._write(mode='a'))
+                    self._write(mode='a')
                 except requests.exceptions.HTTPError as e:
                     raise AddressError(
                         f"Address {self.linked_wallet_address} is invalid.")
             else:
-                all_acct_names = filter(
-                    re.compile(
-                        r"^\[[a-zA-Z0-9]").search, open(self.user_dotfile).readlines()
-                )
 
-                print(all_acct_names)
-
-                def formatted_acct_names(acct_names): return [
-                    name.strip("[]\n") for name in acct_names
-                ]
-
-                list_of_formatted_acct_names = formatted_acct_names(all_acct_names)
-
-                print(list_of_formatted_acct_names)
+                list_of_formatted_acct_names = clean_acct_names(self.user_dotfile)
 
                 if self.account_name in list_of_formatted_acct_names:
                     return True
@@ -127,5 +115,3 @@ class Auth(object):
             except requests.exceptions.HTTPError as e:
                 raise AddressError(
                     f"Address {self.linked_wallet_address} is invalid.")
-
-            # print("I need to verify with algorand and then write to file.")

@@ -8,8 +8,13 @@ from typing import Optional, Dict
 import re
 
 from cli.auth import Auth
-from cli.utils import extract_matching_pub_key, extract_matching_priv_key
+from cli.utils import extract_matching_pub_key, extract_matching_priv_key, clean_acct_names
 
+
+class DuplicateAcctNameError(Exception):
+    def __init__(self, msg: str):
+        self.msg = msg
+        super().__init__(msg)
 
 user_home_dir = str(Path.home())  # same as os.path.expanduser("~")
 equit_ease_dir = os.path.join(user_home_dir, ".pos_etf")
@@ -84,13 +89,8 @@ def handle_auth_flow(auth_type: str):
 
     elif auth_type == "login":
         auth_results = dict()
-        valid_acct_names = filter(
-            re.compile(
-                r"^\[[a-zA-Z0-9]").search, open(credentials_file_path).readlines()
-        )
-        cleaned_acct_names = [
-            name.strip("[]\n") for name in valid_acct_names
-        ]
+        cleaned_acct_names = clean_acct_names(credentials_file_path)
+
         customized_acct_question = acct_name_question(
             extras={
                 "type": "list",
@@ -99,9 +99,11 @@ def handle_auth_flow(auth_type: str):
         )
         name_for_acct = prompt(customized_acct_question)
 
-    acct_name_results = name_for_acct.get("acct_name")
+    acct_name_results = name_for_acct.get("acct_name", '')
     auth_results["acct_name"] = acct_name_results if acct_name_results != '' else auth_results.get('public_key')
-    print("RESSIES: ", auth_results)
+
+    if auth_type == "signup" and auth_results["acct_name"] in clean_acct_names(credentials_file_path):
+        raise DuplicateAcctNameError("Account name {} already exists. Account names must be unique.".format(auth_results["acct_name"]))
 
     return auth_results
 
@@ -116,16 +118,12 @@ def main():
 
     args = parser.parse_args()
 
-    print(args)
     auth_type = args.auth
     if auth_type:
         auth_results = handle_auth_flow(auth_type)
 
         pub_key = auth_results.get('public_key') if auth_type == "signup" else extract_matching_pub_key(auth_results['acct_name'], [line.strip("[]\n") for line in open(credentials_file_path).readlines()])
         priv_key = auth_results.get('private_key') if auth_type == "signup" else extract_matching_priv_key(auth_results['acct_name'], [line.strip("[]\n") for line in open(credentials_file_path).readlines()])
-
-        print(pub_key, priv_key)
-        print("ACCT NAME: ", auth_results["acct_name"])
 
         auth = Auth(
             pub_key,
