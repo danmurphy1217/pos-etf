@@ -9,12 +9,7 @@ import re
 
 from cli.auth import Auth
 from cli.utils import extract_matching_pub_key, extract_matching_priv_key, clean_acct_names
-
-
-class DuplicateAcctNameError(Exception):
-    def __init__(self, msg: str):
-        self.msg = msg
-        super().__init__(msg)
+from cli.error import DuplicateAcctNameError
 
 user_home_dir = str(Path.home())  # same as os.path.expanduser("~")
 equit_ease_dir = os.path.join(user_home_dir, ".pos_etf")
