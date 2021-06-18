@@ -7,31 +7,7 @@ from urllib.parse import urlencode
 import re
 
 from cli.utils import clean_acct_names
-
-"""
-Signup flow is to create a profile name, provide wallet address and private key.
-
-I then need to verify that this are correct prior to writing to any files or passing 
-onto the next step in the process.
-
-For reusability, I should first check to see if profile name exists in the dotfile,
-Then if it does not I can ping and verify with algorand. If it does, I can assume that
-it was alraedy verified by me during the sign up process.
-"""
-
-
-class AddressError(Exception):
-
-    def __init__(self, message: str):
-        Exception.__init__(self, message)
-
-
-class AccountNameError(Exception):
-
-    def __init__(self, message: str = "Provided Account Name does not exist. Run `algoetf --signup` to begin."):
-        self.message = message
-        super().__init__(message)
-
+from cli.error import AccountNameError, AddressError
 
 class Auth(object):
 
