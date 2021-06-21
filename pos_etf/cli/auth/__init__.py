@@ -64,6 +64,8 @@ class Auth(object):
                     )
 
                     self._write(mode='a')
+
+                    os.environ['ALGOETF_PROFILE'] = self.account_name
                 except requests.exceptions.HTTPError as e:
                     raise AddressError(
                         f"Address {self.linked_wallet_address} is invalid.")
@@ -72,6 +74,7 @@ class Auth(object):
                 list_of_formatted_acct_names = clean_acct_names(self.user_dotfile)
 
                 if self.account_name in list_of_formatted_acct_names:
+                    os.environ['ALGOETF_PROFILE'] = self.account_name
                     return True
                 else:
                     raise AccountNameError(
@@ -88,6 +91,8 @@ class Auth(object):
                 self._make_dotfile()
 
                 print(self._write())
+                os.environ['ALGOETF_PROFILE'] = self.account_name
+
             except requests.exceptions.HTTPError as e:
                 raise AddressError(
                     f"Address {self.linked_wallet_address} is invalid.")

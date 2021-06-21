@@ -1,10 +1,13 @@
 import re
-from typing import List
+from typing import List, Dict
+import algod
+from algosdk import account, mnemonic
+
 
 def clean_acct_names(user_dotfile: str) -> List[str]:
     """
     clean all account names and return them
-    
+
     :param user_dotfile -> ``str``: path to users `.pos_etf` dotfile
     """
     all_acct_names = filter(
@@ -20,6 +23,7 @@ def clean_acct_names(user_dotfile: str) -> List[str]:
 
     return list_of_formatted_acct_names
 
+
 def extract_matching_pub_key(acct_name: str, dotfile_contents: List[str]):
     """
     extract public key that matches `acct_name`.
@@ -28,23 +32,80 @@ def extract_matching_pub_key(acct_name: str, dotfile_contents: List[str]):
     """
     index_of_acct_name = dotfile_contents.index(acct_name)
     index_of_pub_key = index_of_acct_name + 1
-    
+
     messy_pub_key = dotfile_contents[index_of_pub_key]
 
     clean_pub_key = messy_pub_key.split(" = ")[-1]
     return clean_pub_key
 
-def extract_matching_priv_key(acct_name: str, dotfile_contents: List[str]):
+
+def extract_matching_passphrase(acct_name: str, dotfile_contents: List[str]):
     """
-    extract private key that matches `acct_name`.
+    extract the passphrase that matches `acct_name`.
 
     :param acct_name -> ``str``: the name of the account
     """
     index_of_acct_name = dotfile_contents.index(acct_name)
-    index_of_priv_key = index_of_acct_name + 2
+    index_of_passphrase = index_of_acct_name + 2
 
-    messy_priv_key = dotfile_contents[index_of_priv_key]
+    messy_passphrase = dotfile_contents[index_of_passphrase]
 
-    clean_priv_key = messy_priv_key.split(" = ")[-1]
-    return clean_priv_key
+    clean_passphrase = messy_passphrase.split(" = ")[-1]
+    return clean_passphrase
 
+
+def add_network_params(client: algod.AlgodClient, tx_data: Dict[str, str or int]) -> Dict[str, str or int]:
+    """
+    Adds network-related parameters to supplied transaction data.
+
+    :param client -> ``algod.AlgodClient``: an algorand client object.
+    :param tx_data -> ``Dict[str, str or int]``: data for the transaction.
+    """
+    params = client.suggested_params()
+    tx_data["first"] = params.get("lastRound")
+    tx_data["last"] = params.get("lastRound") + 1000
+    tx_data["gh"] = params.get("genesishashb64")
+    tx_data["gen"] = params.get("genesisID")
+    tx_data["fee"] = .001
+    tx_data["flat_fee"] = True
+    return tx_data
+
+
+def sign_and_send(transaction: str, passphrase: str, client: algod.AlgodClient) -> Dict[str, str or int]:
+    """
+    sign and send a transaction to the algorand network. Return the transaction
+    info when the transaction is completed.
+
+    :param transaction -> ``algosdk.transaction.AssetTransferTxn``: the transaction object.
+    :param passphrase -> ``str``: the public key for the user involved in the transaction.
+    :param client -> ``algod.AlgodClient``: an algorand client object.
+    """
+    private_key = mnemonic.to_private_key(passphrase)
+    signed_transaction = transaction.sign(private_key)
+    transaction_id = signed_transaction.transaction.get_txid()
+    client.send_transaction(signed_transaction, headers={
+                            'content-type': 'application/x-binary'})
+    transaction_info = wait_for_confirmation(client, transaction_id)
+    return transaction_info
+
+
+def wait_for_confirmation(client: algod.AlgodClient, transaction_id: str) -> Dict[str, str or int]:
+    """
+    Check for when the transaction is confirmed by the network. Once confirmed, return
+    the transaction information.
+
+    :param client -> ``algod.AlgodClient``: an algorand client object.
+    :param transaction_id -> ``str``: id for the transaction.
+    """
+    last_round = client.status().get("lastRound")
+    while True:
+        transaction_info = client.pending_transaction_info(transaction_id)
+        print(transaction_info)
+        if transaction_info.get("round") and transaction_info.get("round") > 0:
+            print(
+                f"Transaction {transaction_id} confirmed in round {transaction_info.get('round')}.")
+            return transaction_info
+        else:
+            print("Waiting for confirmation...")
+            last_round += 1
+            client.status_after_block(last_round)
