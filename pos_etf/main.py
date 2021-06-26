@@ -4,12 +4,13 @@ import os
 from pathlib import Path
 from typing import Optional, Dict
 import json
+from algosdk.v2client import algod
 
 from cli.auth import Auth
 from cli.utils import extract_matching_pub_key, extract_matching_passphrase, clean_acct_names
 from cli.error import DuplicateAcctNameError
 from cli.transaction import Transaction
-from cli.utils.constants import algoetf_addr
+from cli.utils.constants import algoetf_addr, creator_passphrase
 
 user_home_dir = str(Path.home())  # same as os.path.expanduser("~")
 equit_ease_dir = os.path.join(user_home_dir, ".pos_etf")
@@ -60,11 +61,11 @@ def handle_auth_flow(auth_type: str):
     """handle login/signup flow for user."""
 
     addr_and_key_questions = [
-        {"type": "password", "name": "public_key", "message": "passphrase:"},
+        {"type": "password", "name": "public_key", "message": "address:"},
         {
             "type": "password",
-            "name": "private_key",
-            "message": "private key:",
+            "name": "passphrase",
+            "message": "passphrase:",
         },
     ]
 
@@ -136,7 +137,7 @@ def main():
 
         pub_key = auth_results.get('public_key') if auth_type == "signup" else extract_matching_pub_key(
             auth_results['acct_name'], [line.strip("[]\n") for line in open(credentials_file_path).readlines()])
-        priv_key = auth_results.get('passphrase') if auth_type == "signup" else extract_matching_passphrase(
+        passphrase = auth_results.get('passphrase') if auth_type == "signup" else extract_matching_passphrase(
             auth_results['acct_name'], [line.strip("[]\n") for line in open(credentials_file_path).readlines()])
 
         if auth_type == "login":
@@ -146,7 +147,7 @@ def main():
 
         auth = Auth(
             pub_key,
-            priv_key,
+            passphrase,
             auth_results['acct_name'],
             credentials_file_path,
             "https://testnet.algoexplorerapi.io",
@@ -167,14 +168,21 @@ def main():
             else:
                 default_account_name = os.environ.get("ALGOETF_PROFILE")
 
-            
-            print(default_account_name)
-            # client = algod.AlgodClient(asyncio.run(get_api_token(
-            #     ALGORAND_MAIN_NET_DATA_DIR)), asyncio.run(get_network_info(ALGORAND_MAIN_NET_DATA_DIR)))
+            client = algod.AlgodClient(
+                "", "https://testnet.algoexplorerapi.io", headers={'User-Agent': 'DanM'})
 
-            # txn = Transaction(client, algoetf_addr,)
+            pub_key = extract_matching_pub_key(default_account_name, [line.strip(
+                "[]\n") for line in open(credentials_file_path).readlines()])
+            passphrase = extract_matching_passphrase(default_account_name, [line.strip(
+                "[]\n") for line in open(credentials_file_path).readlines()])
 
-            print("Buying TXN")
+            print(pub_key)
+            print(passphrase)
+
+            txn = Transaction(client, algoetf_addr, pub_key,
+                              creator_passphrase, int(args.buy[0]))
+            print(txn.buy())
+
         elif args.sell:
 
             if not os.environ.get("ALGOETF_PROFILE"):
