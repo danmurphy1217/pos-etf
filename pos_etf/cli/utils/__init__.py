@@ -1,8 +1,8 @@
 import re
 from typing import List, Dict
-import algod
 from algosdk import account, mnemonic
-
+from algosdk.v2client import algod
+from algosdk import algod as algod_v1
 
 def clean_acct_names(user_dotfile: str) -> List[str]:
     """
@@ -62,11 +62,11 @@ def add_network_params(client: algod.AlgodClient, tx_data: Dict[str, str or int]
     :param tx_data -> ``Dict[str, str or int]``: data for the transaction.
     """
     params = client.suggested_params()
-    tx_data["first"] = params.get("lastRound")
-    tx_data["last"] = params.get("lastRound") + 1000
-    tx_data["gh"] = params.get("genesishashb64")
-    tx_data["gen"] = params.get("genesisID")
-    tx_data["fee"] = .001
+    tx_data["first"] = params.first
+    tx_data["last"] = params.last
+    tx_data["gh"] = params.gh
+    tx_data["gen"] = params.gen
+    tx_data["fee"] = .1
     tx_data["flat_fee"] = True
     return tx_data
 
@@ -89,7 +89,7 @@ def sign_and_send(transaction: str, passphrase: str, client: algod.AlgodClient) 
     return transaction_info
 
 
-def wait_for_confirmation(client: algod.AlgodClient, transaction_id: str) -> Dict[str, str or int]:
+def wait_for_confirmation(client: algod.AlgodClient, transaction_id: str, timeout: int = 100) -> Dict[str, str or int]:
     """
     Check for when the transaction is confirmed by the network. Once confirmed, return
     the transaction information.
@@ -97,15 +97,51 @@ def wait_for_confirmation(client: algod.AlgodClient, transaction_id: str) -> Dic
     :param client -> ``algod.AlgodClient``: an algorand client object.
     :param transaction_id -> ``str``: id for the transaction.
     """
-    last_round = client.status().get("lastRound")
-    while True:
-        transaction_info = client.pending_transaction_info(transaction_id)
-        print(transaction_info)
-        if transaction_info.get("round") and transaction_info.get("round") > 0:
-            print(
-                f"Transaction {transaction_id} confirmed in round {transaction_info.get('round')}.")
-            return transaction_info
-        else:
-            print("Waiting for confirmation...")
-            last_round += 1
-            client.status_after_block(last_round)
+    start_round = client.status()["last-round"] + 1;
+    current_round = start_round
+
+
+    while current_round < start_round + timeout:
+        try:
+            pending_txn = client.pending_transaction_info(transaction_id)
+        except Exception:
+            return 
+        if pending_txn.get("confirmed-round", 0) > 0:
+            return pending_txn
+        elif pending_txn["pool-error"]:  
+            raise Exception(
+                'pool error: {}'.format(pending_txn["pool-error"]))
+        client.status_after_block(current_round)                   
+        current_round += 1
+    raise Exception(
+        'pending tx not found in timeout rounds, timeout value = : {}'.format(timeout))
+
+    # while True:
+    #     transaction_info = client.pending_transaction_info(transaction_id)
+    #     print(transaction_info)
+    #     if transaction_info.get("round") and transaction_info.get("round") > 0:
+    #         print(
+    #             f"Transaction {transaction_id} confirmed in round {transaction_info.get('round')}.")
+    #         return transaction_info
+    #     else:
+    #         print("Waiting for confirmation...")
+    #         current_round += 1
+    #         print(current_round)
+    #         client.status_after_block(current_round)
+
+
+def balance_formatter(amount, asset_id, client):
+    """
+    Returns the formatted units for a given asset and amount.
+
+    :param amount -> ``int``:
+    :param asset_id -> ``int``: the ID for the asset.
+    :param client -> ``algod.Client``: instantiated client object.
+    """
+    v1_client = algod_v1.AlgodClient(client.algod_token, client.algod_address, headers={'User-Agent': 'DanM'})
+    
+    asset_info = v1_client.asset_info(asset_id)
+    decimals = asset_info.get("decimals")
+    unit = asset_info.get("unitname")
+    formatted_amount = amount/10**decimals
+    return "{} {}".format(formatted_amount, unit)
