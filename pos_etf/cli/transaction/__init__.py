@@ -23,17 +23,25 @@ class Transaction:
         self.passphrase = passphrase
         self.amount = amount
 
-    def do(self, txn_type: str):
+    def do(self, *args):
         """
         perform the specified txn type.
         
         :param txn_type -> `str`: the type of txn to perform, as specified by args.buy or args.sell.
         """
-        if txn_type not in ('buy', 'sell'):
-            raise ArgumentError(None, "`txn_type` must be buy or sell.")
+        for txn_type in args:
+            if txn_type not in ('buy', 'sell', 'exchange'):
+                raise ArgumentError(None, "`txn_type` must be buy or sell.")
 
-        return Buy(self).transfer() if txn_type == 'buy' else Sell(self).transfer()
+            else:
+                if txn_type == 'buy':
+                    txn_obj = Buy(self)
+                elif txn_type == 'sell':
+                    txn_obj = Sell(self)
+                elif txn_type == 'exchange':
+                    txn_obj = Exchange(self)
 
+                return txn_obj.transfer() # perform the txn
 
 class Buy():
     def __init__(self, transaction: Transaction):
@@ -76,7 +84,18 @@ class Buy():
 
 class Sell(Buy):
     def __init__(self, transaction: Transaction):
+        super().__init__(transaction)
+
+class Exchange(Sell):
+    def __init__(self, transaction: Transaction):
         """
-        what do I need to allow someone to sell the token????
+        what do I need to allow someone to exchange the token????
         """
         super().__init__(transaction)
+    
+    def transfer():
+        """
+        exchange algos for the token (from buyer -> seller if Sell(), seller -> buyer if Buy())
+        """
+        # ! If Sell(), algos move from ETF Address to user addr, if Buy() algos move from user addr to ETF addr
+        # ! the only real diff is who is signing the txn (whose passphrase do we need to complete the txn?)
