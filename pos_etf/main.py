@@ -2,7 +2,7 @@ import argparse
 from PyInquirer import prompt
 import os
 from pathlib import Path
-from typing import Optional, Dict
+from typing import Optional, Dict, Any
 import json
 from algosdk.v2client import algod
 
@@ -13,9 +13,9 @@ from cli.transaction import Transaction
 from cli.utils.constants import algoetf_addr, creator_passphrase
 
 user_home_dir = str(Path.home())  # same as os.path.expanduser("~")
-equit_ease_dir = os.path.join(user_home_dir, ".pos_etf")
-credentials_file_path = Path(os.path.join(equit_ease_dir, "credentials"))
-default_file_path = Path(os.path.join(equit_ease_dir, "default.json"))
+pos_etf_dir = os.path.join(user_home_dir, ".pos_etf")
+credentials_file_path = Path(os.path.join(pos_etf_dir, "credentials"))
+default_file_path = Path(os.path.join(pos_etf_dir, "default.json"))
 
 
 def init_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
@@ -54,11 +54,22 @@ def init_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
         help="""View Your POS_ETF holdings."""
     )
 
+    parser.add_argument(
+        "--account",
+        type=str,
+        nargs=1,
+        help="""View Your POS_ETF holdings."""
+    )
+
     return parser
 
 
 def handle_auth_flow(auth_type: str):
     """handle login/signup flow for user."""
+    if not os.path.exists(pos_etf_dir):
+        os.makedirs(pos_etf_dir)
+        credentials_file_path.touch()
+        default_file_path.touch()
 
     addr_and_key_questions = [
         {"type": "password", "name": "public_key", "message": "address:"},
@@ -118,6 +129,31 @@ def get_default_account():
     except FileNotFoundError:
         raise FileNotFoundError("default.json does not exist yet")
 
+def do_txn(args: Dict[str, Any], default_account_name: str):
+    """Build and send transaction"""
+    client = algod.AlgodClient(
+        "", "https://testnet.algoexplorerapi.io", headers={'User-Agent': 'DanM'})
+
+    pub_key = extract_matching_pub_key(default_account_name, [line.strip(
+        "[]\n") for line in open(credentials_file_path).readlines()])
+    passphrase = extract_matching_passphrase(default_account_name, [line.strip(
+        "[]\n") for line in open(credentials_file_path).readlines()])
+
+    txn = Transaction(client, algoetf_addr, pub_key,
+                        creator_passphrase, int(args.buy[0]))
+    print(txn.buy())
+
+def display_txn_info(sending_addr: str, receiver_addr: str, amount: int) -> None:
+    """display transaction info"""
+
+    sending_addr = sending_addr + " (Wallet Address that holds the pool of POS Coins)" if sending_addr == algoetf_addr else sending_addr
+
+    print("\nTXN INFORMATION:\n")
+    print(f"- Sending Address: {sending_addr}")
+    print(f"- Receiver Address: {receiver_addr}")
+    print(f"- Amount: {amount}\n\n")
+
+    input("If this information is correct, press enter. Otherwise, cancel your request.")
 
 def main():
     base_parser = argparse.ArgumentParser(
@@ -153,14 +189,34 @@ def main():
             "https://testnet.algoexplorerapi.io",
         )
 
-        print(auth.verify(auth_type))
-
-        # Auth("MXIGC5RCUFNFV2TB7ODAGQ4H7VC75DCH2SBBG7ATWPLB4YHBO7FFPNVLJ4", "privst key", credentials_file_path,
-        #      "https://testnet.algoexplorerapi.io", arg_namespace=args).verify()
+        auth.verify(auth_type)
 
     else:
 
         if args.buy:
+
+            if not (os.environ.get("ALGOETF_PROFILE") or args.account):
+                default_account_name = get_default_account()
+
+            else:
+                default_account_name = args.account[0] if args.account else os.environ.get("ALGOETF_PROFILE")
+
+            client = algod.AlgodClient(
+                "", "https://testnet.algoexplorerapi.io", headers={'User-Agent': 'DanM'})
+
+            pub_key = extract_matching_pub_key(default_account_name, [line.strip(
+                "[]\n") for line in open(credentials_file_path).readlines()])
+            passphrase = extract_matching_passphrase(default_account_name, [line.strip(
+                "[]\n") for line in open(credentials_file_path).readlines()])
+
+
+            display_txn_info(sending_addr=algoetf_addr, receiver_addr=pub_key, amount=int(args.buy[0]))
+
+            txn = Transaction(client, algoetf_addr, pub_key,
+                              creator_passphrase, int(args.buy[0]))
+            txn.do("buy")
+
+        elif args.sell:
 
             if not os.environ.get("ALGOETF_PROFILE"):
                 default_account_name = get_default_account()
@@ -175,24 +231,11 @@ def main():
                 "[]\n") for line in open(credentials_file_path).readlines()])
             passphrase = extract_matching_passphrase(default_account_name, [line.strip(
                 "[]\n") for line in open(credentials_file_path).readlines()])
+            
+            display_txn_info(sending_addr=pub_key, receiver_addr=algoetf_addr, amount=int(args.sell[0]))
 
-            print(pub_key)
-            print(passphrase)
-
-            txn = Transaction(client, algoetf_addr, pub_key,
-                              creator_passphrase, int(args.buy[0]))
-            print(txn.buy())
-
-        elif args.sell:
-
-            if not os.environ.get("ALGOETF_PROFILE"):
-                default_account_name = get_default_account()
-
-            else:
-                default_account_name = os.environ.get("ALGOETF_PROFILE")
-
-            print(default_account_name)
-            print("SELLING TXN")
+            txn = Transaction(client, sender=pub_key, receiver_address=algoetf_addr, passphrase=passphrase, amount=int(args.sell[0]))
+            txn.do("sell")
 
 
 if __name__ == '__main__':

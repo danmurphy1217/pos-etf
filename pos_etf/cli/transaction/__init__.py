@@ -1,3 +1,5 @@
+from argparse import ArgumentError
+from os import error
 from algosdk.transaction import (
     AssetTransferTxn,
     write_to_file
@@ -21,13 +23,16 @@ class Transaction:
         self.passphrase = passphrase
         self.amount = amount
 
-    def buy(self):
-        """fire off a buy transaction to the algorand blockchain."""
-        return Buy(self).transfer()
+    def do(self, txn_type: str):
+        """
+        perform the specified txn type.
+        
+        :param txn_type -> `str`: the type of txn to perform, as specified by args.buy or args.sell.
+        """
+        if txn_type not in ('buy', 'sell'):
+            raise ArgumentError(None, "`txn_type` must be buy or sell.")
 
-    def sell(self):
-        """fire off a sell transaction to the algorand blockchain."""
-        return Sell(self).transfer()
+        return Buy(self).transfer() if txn_type == 'buy' else Sell(self).transfer()
 
 
 class Buy():
@@ -62,7 +67,7 @@ class Buy():
             formatted_amount = balance_formatter(
                 self.transaction.amount, asset_id, self.transaction.client)
             print("Transferred {} from {} to {}".format(
-                formatted_amount, algoetf_addr, self.transaction.receiver_address))
+                formatted_amount, self.transaction.sender, self.transaction.receiver_address))
             print("Transaction ID Confirmation: {}".format(
                 transaction_info.get("tx")))
         else:
@@ -70,8 +75,8 @@ class Buy():
 
 
 class Sell(Buy):
-    def __init__(self, client: algod.AlgodClient, sender: str, receiver_address: str, passphrase: str, amount: float):
+    def __init__(self, transaction: Transaction):
         """
         what do I need to allow someone to sell the token????
         """
-        super().__init__(client, sender, receiver_address, passphrase, amount)
+        super().__init__(transaction)
