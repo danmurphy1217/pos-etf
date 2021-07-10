@@ -3,6 +3,7 @@ from typing import List, Dict
 from algosdk import account, mnemonic
 from algosdk.v2client import algod
 from algosdk import algod as algod_v1
+from . import constants
 
 def clean_acct_names(user_dotfile: str) -> List[str]:
     """
@@ -66,7 +67,7 @@ def add_network_params(client: algod.AlgodClient, tx_data: Dict[str, str or int]
     tx_data["last"] = params.last
     tx_data["gh"] = params.gh
     tx_data["gen"] = params.gen
-    tx_data["fee"] = .1
+    tx_data["fee"] = round(convert_algos_to_microalgo(.01))
     tx_data["flat_fee"] = True
     return tx_data
 
@@ -145,3 +146,9 @@ def balance_formatter(amount, asset_id, client):
     unit = asset_info.get("unitname")
     formatted_amount = amount/10**decimals
     return "{} {}".format(formatted_amount, unit)
+
+def convert_microalgos_to_algos(microalgos_amt : int):
+    return microalgos_amt * constants.amt_algos_in_one_microalgo
+
+def convert_algos_to_microalgo(algos_amt : int):
+    return algos_amt * constants.amt_microalgos_in_one_algo

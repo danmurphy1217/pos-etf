@@ -215,9 +215,8 @@ def main():
 
             display_txn_info(sending_addr=algoetf_addr, receiver_addr=pub_key, amount=int(args.buy[0]))
 
-            txn = Transaction(client, algoetf_addr, pub_key,
-                              creator_passphrase, int(args.buy[0]))
-            txn.do("buy")
+            txn = Transaction(client, algoetf_addr, pub_key, buy_or_sell_passphrase=creator_passphrase, algo_exchange_passphrase=passphrase, amount=int(args.buy[0]))
+            txn.do("buy", "exchange")
 
         elif args.sell:
 
@@ -232,13 +231,13 @@ def main():
 
             pub_key = extract_matching_pub_key(default_account_name, [line.strip(
                 "[]\n") for line in open(credentials_file_path).readlines()])
-            passphrase = extract_matching_passphrase(default_account_name, [line.strip(
+            buy_or_sell_passphrase = extract_matching_passphrase(default_account_name, [line.strip(
                 "[]\n") for line in open(credentials_file_path).readlines()])
             
             display_txn_info(sending_addr=pub_key, receiver_addr=algoetf_addr, amount=int(args.sell[0]))
 
-            txn = Transaction(client, sender=pub_key, receiver_address=algoetf_addr, passphrase=passphrase, amount=int(args.sell[0]))
-            txn.do("sell")
+            txn = Transaction(client, sender=pub_key, receiver_address=algoetf_addr, buy_or_sell_passphrase=buy_or_sell_passphrase, algo_exchange_passphrase=creator_passphrase, amount=int(args.sell[0]))
+            txn.do("sell", "exchange")
 
 
 if __name__ == '__main__':
