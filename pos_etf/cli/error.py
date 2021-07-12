@@ -14,3 +14,8 @@ class DuplicateAcctNameError(Exception):
     def __init__(self, msg: str):
         self.msg = msg
         super().__init__(msg)
+
+class NoStoredAccountsError(Exception):
+    def __init__(self, msg: str):
+        self.msg = msg
+        super().__init__(msg)
