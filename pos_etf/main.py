@@ -2,7 +2,7 @@ import argparse
 from PyInquirer import prompt
 import os
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import List, Optional, Dict, Any
 import json
 from algosdk.v2client import algod
 
@@ -22,7 +22,6 @@ default_file_path = Path(os.path.join(pos_etf_dir, "default.json"))
 # DONE: on sell, Algos are sent from the receiver (the algoetf addr) to the sender and the sender sends the receiver POS coin (which should be converted to underlying holdings of POS coin 1x per day).
 #DONE: calculate NAV of the ETF when someone buys or sells, use the NAV to determine how many Algos must be sent for the exchange
 
-# 3) transfer the amount of NAV in Algos to the person who is sending the ETF token
 #TODO: After determining how many Algos are sent, determine how to calculate the % of the underlying assets that must be bought with the Algos/transfer algos to USDC
 
 def init_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
@@ -57,7 +56,8 @@ def init_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     parser.add_argument(
         "--view",
         type=str,
-        nargs=1,
+        nargs="?",
+        const="None",
         help="""View Your POS_ETF holdings."""
     )
 
@@ -242,6 +242,13 @@ def main():
 
             txn = Transaction(client, sender=pub_key, receiver_address=algoetf_addr, buy_or_sell_passphrase=buy_or_sell_passphrase, algo_exchange_passphrase=creator_passphrase, amount=int(args.sell[0]))
             txn.do("sell", "exchange")
+        
+        elif args.view:
+
+            if args.view == 'None':
+                print("Display all account names")
+            else:
+                print("Use provided name and retrieve info for that account")
 
 
 if __name__ == '__main__':
