@@ -1,6 +1,6 @@
 import re
 import aiohttp 
-from typing import List, Dict
+from typing import List, Dict, Any
 from algosdk import account, mnemonic
 from algosdk.v2client import algod
 from algosdk import algod as algod_v1
@@ -166,3 +166,9 @@ async def get_algorand_price():
         json_data = await response.json()
 
         return json_data['data']['statistics']['price']
+
+async def send_request_to(url: str, req_type: str, **kwargs):
+    async with aiohttp.ClientSession() as session:
+        async with session.request(req_type, url, data=kwargs.get("body", dict()), headers=kwargs.get("headers", dict())) as response:
+            response.raise_for_status()
+            return await response.json()

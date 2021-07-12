@@ -4,13 +4,14 @@ import os
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 import json
+import asyncio
 from algosdk.v2client import algod
 
 from cli.auth import Auth
-from cli.utils import extract_matching_pub_key, extract_matching_passphrase, clean_acct_names
+from cli.utils import extract_matching_pub_key, extract_matching_passphrase, clean_acct_names, send_request_to
+from cli.utils.constants import algoetf_addr, creator_passphrase, asset_id
 from cli.error import DuplicateAcctNameError
 from cli.transaction import Transaction
-from cli.utils.constants import algoetf_addr, creator_passphrase
 
 user_home_dir = str(Path.home())  # same as os.path.expanduser("~")
 pos_etf_dir = os.path.join(user_home_dir, ".pos_etf")
@@ -70,6 +71,14 @@ def init_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
 
     return parser
 
+def acct_name_question(default_val: Optional[str] = None, extras: Dict[str, str] = {}):
+    init_dict = {
+        "type": "input",
+        "name": "acct_name",
+        "message": f"account name: {default_val}"
+    }
+    init_dict.update(extras)
+    return init_dict
 
 def handle_auth_flow(auth_type: str):
     """handle login/signup flow for user."""
@@ -86,15 +95,6 @@ def handle_auth_flow(auth_type: str):
             "message": "passphrase:",
         },
     ]
-
-    def acct_name_question(default_val: Optional[str] = None, extras: Dict[str, str] = {}):
-        init_dict = {
-            "type": "input",
-            "name": "acct_name",
-            "message": f"account name: {default_val}"
-        }
-        init_dict.update(extras)
-        return init_dict
 
     if auth_type == "signup":
         auth_results = prompt(addr_and_key_questions)
@@ -247,6 +247,23 @@ def main():
 
             if args.view == 'None':
                 print("Display all account names")
+                cleaned_acct_names = clean_acct_names(credentials_file_path)
+
+                customized_acct_question = acct_name_question(
+                    extras={
+                        "type": "list",
+                        "choices": cleaned_acct_names
+                    }
+                )
+                name_for_acct = prompt(customized_acct_question)['acct_name']
+                pub_key = extract_matching_pub_key(name_for_acct, [
+                    line.strip("[]\n") for line in open(credentials_file_path).readlines()
+                ])
+                # https://testnet.algoexplorerapi.io/v2/accounts/{pubkey}
+                json_res = asyncio.run(send_request_to(f"https://testnet.algoexplorerapi.io/v2/accounts/{pub_key}", "GET"))
+                list_of_assets = json_res['assets']
+                info_for_etf_asset_id = [asset for asset in list_of_assets if asset['asset-id'] == asset_id]
+                print(info_for_etf_asset_id[0]['amount'])
             else:
                 print("Use provided name and retrieve info for that account")
 
