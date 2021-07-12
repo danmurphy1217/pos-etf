@@ -10,7 +10,7 @@ from algosdk.v2client import algod
 from cli.auth import Auth
 from cli.utils import extract_matching_pub_key, extract_matching_passphrase, clean_acct_names, send_request_to
 from cli.utils.constants import algoetf_addr, creator_passphrase, asset_id
-from cli.error import DuplicateAcctNameError
+from cli.error import DuplicateAcctNameError, NoStoredAccountsError
 from cli.transaction import Transaction
 
 user_home_dir = str(Path.home())  # same as os.path.expanduser("~")
@@ -105,6 +105,9 @@ def handle_auth_flow(auth_type: str):
     elif auth_type == "login":
         auth_results = dict()
         cleaned_acct_names = clean_acct_names(credentials_file_path)
+        if not cleaned_acct_names:
+            raise NoStoredAccountsError("No stored accounts exist, to create one run: `algo_etf --signup`")
+        print(cleaned_acct_names)
 
         customized_acct_question = acct_name_question(
             extras={
@@ -183,10 +186,10 @@ def main():
         passphrase = auth_results.get('passphrase') if auth_type == "signup" else extract_matching_passphrase(
             auth_results['acct_name'], [line.strip("[]\n") for line in open(credentials_file_path).readlines()])
 
-        if auth_type == "login":
-            os.environ['ALGOETF_PROFILE'] = auth_results['acct_name']
-        else:
-            get_default_account()
+        # if auth_type == "login":
+            # os.environ['ALGOETF_PROFILE'] = auth_results['acct_name']
+        # else:
+            # get_default_account()
 
         auth = Auth(
             pub_key,
