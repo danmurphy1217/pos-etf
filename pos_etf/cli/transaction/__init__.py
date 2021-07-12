@@ -1,4 +1,5 @@
 from argparse import ArgumentError
+import asyncio
 from os import error
 from algosdk.transaction import (
     PaymentTxn,
@@ -7,8 +8,15 @@ from algosdk.transaction import (
 )
 from algosdk.v2client import algod
 
-from cli.utils import add_network_params, sign_and_send, balance_formatter, convert_algos_to_microalgo
+from cli.utils import (
+    add_network_params,
+    sign_and_send,
+    balance_formatter,
+    convert_algos_to_microalgo,
+    get_algorand_price
+)
 from cli.utils.constants import algoetf_addr, asset_id
+from cli.weights.net_asset_value import NetAssetValue
 class Transaction:
 
     def __init__(self, client: algod.AlgodClient, sender: str, receiver_address: str, buy_or_sell_passphrase: str, algo_exchange_passphrase: str, amount: float):
@@ -91,12 +99,19 @@ class Transaction:
         :param txn_type -> `str`: the type of txn to perform, as specified by args.buy or args.sell.
         """
 
+        algorand_in_usd = asyncio.run(get_algorand_price())
+        NavStrategy = NetAssetValue("https://api.coinmarketcap.com/data-api/v3/cryptocurrency/detail?slug=")
+        nav_in_usd = NavStrategy.calculate()
+        
+        count_algos_needed_for_one_etf_token = nav_in_usd / algorand_in_usd # the number of Algos needed to buy one ETF token
+        total_algos_to_be_transferred = count_algos_needed_for_one_etf_token * self.amount
+
         assert all(txn_type in ('buy', 'sell', 'exchange') for txn_type in args)
         txns = []
 
         for txn_type in args:
             if txn_type == 'exchange':
-                txns.append(Exchange(self).build())
+                txns.append(Exchange(self).build(total_algos_to_be_transferred))
             elif txn_type == 'buy':
                 txns.append(Buy(self).build())
             elif txn_type == 'sell':
@@ -120,12 +135,12 @@ class Buy(Transaction):
         :return -> ``None``:
         """
 
-        formatted_algo_amt = self.transaction.amount
+        amount_to_buy = self.transaction.amount # amount of etf coin to buy
 
         transfer_data = {
             "sender": self.transaction.sender,
             "receiver": self.transaction.receiver_address,
-            "amt": formatted_algo_amt,
+            "amt": amount_to_buy,
             "index": asset_id,
         }
 
@@ -144,19 +159,20 @@ class Exchange(Sell):
         """
         super().__init__(transaction)
     
-    def build(self):
+    def build(self, amount_of_transferred_algos: float or int):
         """
         exchange algos for the token (from buyer -> seller if Sell(), seller -> buyer if Buy())
-        """
-        # ! If Sell(), algos move from ETF Address to user addr, if Buy() algos move from user addr to ETF addr
-        # ! the only real diff is who is signing the txn (whose passphrase do we need to complete the txn?)
 
-        formatted_algo_amt = round(convert_algos_to_microalgo(self.transaction.amount))
+        :param amount_of_transferred_algos -> ``float`` or ``int``: the amount of algos to be transferred.
+        """
+
+        formatted_algo_amt = round(convert_algos_to_microalgo(amount_of_transferred_algos))
+        print(formatted_algo_amt)
 
         payment_data = {
             "sender": self.transaction.receiver_address, # the person receiving the token must liquidate algos
             "receiver": self.transaction.sender, # the person sending the token to another receives algos in return
-            "amt": formatted_algo_amt,
+            "amt": formatted_algo_amt, # amount of algos to exchange for the etf coin.
         }
         
         transaction = self.build_txn(PaymentTxn, **payment_data)

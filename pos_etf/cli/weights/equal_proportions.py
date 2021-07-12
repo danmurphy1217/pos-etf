@@ -47,5 +47,5 @@ class EqualProportions(BaseEtf):
 
         return etf_price
 
-# EqualProp = EqualProportions(base_url="https://api.coinmarketcap.com/data-api/v3/cryptocurrency/detail?slug=")
-# print(EqualProp.calculate())
+EqualProp = EqualProportions(base_url="https://api.coinmarketcap.com/data-api/v3/cryptocurrency/detail?slug=")
+print(EqualProp.calculate())

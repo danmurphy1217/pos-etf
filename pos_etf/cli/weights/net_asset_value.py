@@ -1,5 +1,5 @@
 from __future__ import annotations
-from base import BaseEtf
+from cli.weights.base import BaseEtf
 import asyncio
 
 class NetAssetValue(BaseEtf):
@@ -30,6 +30,3 @@ class NetAssetValue(BaseEtf):
             total_circulating_supply += stats["circulatingSupply"]
 
         return round((total_market_cap) / (total_circulating_supply), 2)
-
-# NavStrategy = NetAssetValue("https://api.coinmarketcap.com/data-api/v3/cryptocurrency/detail?slug=")
-# print(NavStrategy.calculate())

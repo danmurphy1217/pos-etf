@@ -20,7 +20,9 @@ default_file_path = Path(os.path.join(pos_etf_dir, "default.json"))
 
 # DONE: on buy, Algos must be transferred from receiver -> sender in exchange for POS coin sent from sender -> receiver (and the Algos should be converted to underlying holdings of POS coin 1x per day).
 # DONE: on sell, Algos are sent from the receiver (the algoetf addr) to the sender and the sender sends the receiver POS coin (which should be converted to underlying holdings of POS coin 1x per day).
-#TODO: calculate NAV of the ETF when someone buys or sells, use the NAV to determine how many Algos must be sent for the exchange
+#DONE: calculate NAV of the ETF when someone buys or sells, use the NAV to determine how many Algos must be sent for the exchange
+
+# 3) transfer the amount of NAV in Algos to the person who is sending the ETF token
 #TODO: After determining how many Algos are sent, determine how to calculate the % of the underlying assets that must be bought with the Algos/transfer algos to USDC
 
 def init_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:

@@ -2,7 +2,6 @@ from __future__ import annotations
 from typing import Tuple, Dict, List
 import asyncio
 import aiohttp
-import json
 
 class BaseEtf(object):
     """

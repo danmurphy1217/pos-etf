@@ -1,4 +1,5 @@
 import re
+import aiohttp 
 from typing import List, Dict
 from algosdk import account, mnemonic
 from algosdk.v2client import algod
@@ -152,3 +153,16 @@ def convert_microalgos_to_algos(microalgos_amt : int):
 
 def convert_algos_to_microalgo(algos_amt : int):
     return algos_amt * constants.amt_microalgos_in_one_algo
+
+async def get_algorand_price():
+    """
+    Using the coin market cap public API, retrieve and return the
+    most recent Algorand price.
+    """
+    base_url = "https://api.coinmarketcap.com/data-api/v3/cryptocurrency/detail?slug="
+    async with aiohttp.ClientSession() as session:
+        response = await session.request("GET", base_url + "algorand")
+        response.raise_for_status()
+        json_data = await response.json()
+
+        return json_data['data']['statistics']['price']
