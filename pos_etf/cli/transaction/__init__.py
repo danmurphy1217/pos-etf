@@ -167,7 +167,6 @@ class Exchange(Sell):
         """
 
         formatted_algo_amt = round(convert_algos_to_microalgo(amount_of_transferred_algos))
-        print(formatted_algo_amt)
 
         payment_data = {
             "sender": self.transaction.receiver_address, # the person receiving the token must liquidate algos
@@ -176,6 +175,5 @@ class Exchange(Sell):
         }
         
         transaction = self.build_txn(PaymentTxn, **payment_data)
-        print(transaction)
 
         return transaction
