@@ -33,7 +33,7 @@ setuptools.setup(
         "msgpack==1.0.2",
         "multidict==5.1.0",
         "prompt-toolkit==1.0.14",
-        "py-algorand-sdk==1.4.1",
+        "py-algorand-sdk==1.6.0",
         "pycodestyle==2.6.0",
         "pycparser==2.20",
         "pycryptodome==3.10.1",
