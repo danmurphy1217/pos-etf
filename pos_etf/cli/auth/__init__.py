@@ -6,8 +6,8 @@ import requests
 from urllib.parse import urlencode
 import re
 
-from cli.utils import clean_acct_names
-from cli.error import AccountNameError, AddressError
+from pos_etf.cli.utils import clean_acct_names
+from pos_etf.cli.error import AccountNameError, AddressError
 
 class Auth(object):
 

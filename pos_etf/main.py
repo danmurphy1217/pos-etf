@@ -7,11 +7,11 @@ import json
 import asyncio
 from algosdk.v2client import algod
 
-from cli.auth import Auth
-from cli.utils import extract_matching_pub_key, extract_matching_passphrase, clean_acct_names, send_request_to
-from cli.utils.constants import algoetf_addr, creator_passphrase, asset_id
-from cli.error import DuplicateAcctNameError, NoSpecifiedAccountError, InvalidAuthArgError
-from cli.transaction import Transaction
+from pos_etf.cli.auth import Auth
+from pos_etf.cli.utils import extract_matching_pub_key, extract_matching_passphrase, clean_acct_names, send_request_to
+from pos_etf.cli.utils.constants import algoetf_addr, creator_passphrase, asset_id
+from pos_etf.cli.error import DuplicateAcctNameError, NoSpecifiedAccountError, InvalidAuthArgError
+from pos_etf.cli.transaction import Transaction
 
 user_home_dir = str(Path.home())  # same as os.path.expanduser("~")
 pos_etf_dir = os.path.join(user_home_dir, ".pos_etf")
@@ -19,6 +19,7 @@ credentials_file_path = Path(os.path.join(pos_etf_dir, "credentials"))
 default_file_path = Path(os.path.join(pos_etf_dir, "default.json"))
 
 
+__algoetf_version__ = '0.0.1'
 # DONE: on buy, Algos must be transferred from receiver -> sender in exchange for POS coin sent from sender -> receiver (and the Algos should be converted to underlying holdings of POS coin 1x per day).
 # DONE: on sell, Algos are sent from the receiver (the algoetf addr) to the sender and the sender sends the receiver POS coin (which should be converted to underlying holdings of POS coin 1x per day).
 #DONE: calculate NAV of the ETF when someone buys or sells, use the NAV to determine how many Algos must be sent for the exchange

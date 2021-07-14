@@ -5,7 +5,7 @@ from algosdk import account, mnemonic
 from algosdk.v2client import algod
 from algosdk import algod as algod_v1
 from . import constants
-from cli.error import InvalidAccountNameError
+from pos_etf.cli.error import InvalidAccountNameError
 
 def clean_acct_names(user_dotfile: str) -> List[str]:
     """

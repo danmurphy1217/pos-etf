@@ -8,15 +8,15 @@ from algosdk.transaction import (
 )
 from algosdk.v2client import algod
 
-from cli.utils import (
+from pos_etf.cli.utils import (
     add_network_params,
     sign_and_send,
     balance_formatter,
     convert_algos_to_microalgo,
     get_algorand_price
 )
-from cli.utils.constants import algoetf_addr, asset_id
-from cli.weights.net_asset_value import NetAssetValue
+from pos_etf.cli.utils.constants import algoetf_addr, asset_id
+from pos_etf.cli.weights.net_asset_value import NetAssetValue
 class Transaction:
 
     def __init__(self, client: algod.AlgodClient, sender: str, receiver_address: str, buy_or_sell_passphrase: str, algo_exchange_passphrase: str, amount: float):
