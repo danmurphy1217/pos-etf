@@ -19,3 +19,15 @@ class NoStoredAccountsError(Exception):
     def __init__(self, msg: str):
         self.msg = msg
         super().__init__(msg)
+
+class NoSpecifiedAccountError(Exception):
+    def __init__(self, msg: str):
+        super().__init__(msg)
+
+class InvalidAuthArgError(Exception):
+    def __init__(self, msg: str):
+        super().__init__(msg)
+
+class InvalidAccountNameError(Exception):
+    def __init__(self, msg: str):
+        super().__init__(msg)

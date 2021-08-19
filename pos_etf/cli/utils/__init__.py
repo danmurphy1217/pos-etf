@@ -5,6 +5,7 @@ from algosdk import account, mnemonic
 from algosdk.v2client import algod
 from algosdk import algod as algod_v1
 from . import constants
+from pos_etf.cli.error import InvalidAccountNameError
 
 def clean_acct_names(user_dotfile: str) -> List[str]:
     """
@@ -32,7 +33,10 @@ def extract_matching_pub_key(acct_name: str, dotfile_contents: List[str]):
 
     :param acct_name -> ``str``: the name of the account
     """
-    index_of_acct_name = dotfile_contents.index(acct_name)
+    try:
+        index_of_acct_name = dotfile_contents.index(acct_name)
+    except ValueError as e:
+        raise InvalidAccountNameError(f"The provided account name, {acct_name}, does not exist.")
     index_of_pub_key = index_of_acct_name + 1
 
     messy_pub_key = dotfile_contents[index_of_pub_key]

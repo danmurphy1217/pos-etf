@@ -8,15 +8,15 @@ from algosdk.transaction import (
 )
 from algosdk.v2client import algod
 
-from cli.utils import (
+from pos_etf.cli.utils import (
     add_network_params,
     sign_and_send,
     balance_formatter,
     convert_algos_to_microalgo,
     get_algorand_price
 )
-from cli.utils.constants import algoetf_addr, asset_id
-from cli.weights.net_asset_value import NetAssetValue
+from pos_etf.cli.utils.constants import algoetf_addr, asset_id
+from pos_etf.cli.weights.net_asset_value import NetAssetValue
 class Transaction:
 
     def __init__(self, client: algod.AlgodClient, sender: str, receiver_address: str, buy_or_sell_passphrase: str, algo_exchange_passphrase: str, amount: float):
@@ -167,7 +167,6 @@ class Exchange(Sell):
         """
 
         formatted_algo_amt = round(convert_algos_to_microalgo(amount_of_transferred_algos))
-        print(formatted_algo_amt)
 
         payment_data = {
             "sender": self.transaction.receiver_address, # the person receiving the token must liquidate algos
@@ -176,6 +175,5 @@ class Exchange(Sell):
         }
         
         transaction = self.build_txn(PaymentTxn, **payment_data)
-        print(transaction)
 
         return transaction

@@ -1,5 +1,5 @@
 from __future__ import annotations
-from cli.weights.base import BaseEtf
+from pos_etf.cli.weights.base import BaseEtf
 import asyncio
 
 class NetAssetValue(BaseEtf):
